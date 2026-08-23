@@ -1,0 +1,159 @@
+const projectCaseStudies = {
+  "proj-001": {
+    id: "PROJ-001", name: "Product Catalog Cleanup", category: "Catalog operations",
+    summary: "A formula-driven Excel workflow that cleans and validates a simulated retail product catalog before marketplace listing.",
+    problem: "The catalog contained inconsistent category and size names, duplicate SKUs, missing identifiers, and invalid price or stock values.",
+    data: "49 simulated product records from one raw catalog export. The raw source was preserved and no rows were dropped.",
+    work: ["Mapped 22 raw category values into four approved categories", "Mapped 18 size variations into five standardized sizes", "Flagged duplicates, missing fields, invalid prices, and invalid stock", "Built a review list and management dashboard"],
+    workflow: ["Preserve raw source", "Build mapping tables", "Standardize fields with formulas", "Run seven validation checks", "Classify readiness", "Reconcile dashboard totals"],
+    tools: ["Microsoft Excel", "VLOOKUP", "TRIM", "PROPER", "COUNTIF", "IF", "Conditional formatting"],
+    result: "All 49 rows were processed. The workbook classified 33 records as Ready to List and 16 as Needs Review, with a specific reason for every flagged row.",
+    skills: ["Data cleaning", "Catalog administration", "Controlled mappings", "Duplicate detection", "Quality assurance", "Dashboard reporting"],
+    gallery: ["EV-01_Raw_Data_Before.png","EV-02_Missing_SKU.png","EV-03_Cleaned_Data_After.png","EV-04_Formula_Evidence.png","EV-05_Category_Mapping.png","EV-06_Size_Mapping.png","EV-07_Duplicate_SKU_QA.png","EV-08_Dashboard_Overview.png"],
+    primaryEvidence: ["EV-01_Raw_Data_Before.png","EV-03_Cleaned_Data_After.png","EV-04_Formula_Evidence.png","EV-08_Dashboard_Overview.png"],
+    files: [
+      {label:"Raw product catalog",path:"assets/downloads/PROJ-001_Raw_Data.xlsx",role:"Source data",description:"Preserved source workbook before cleaning.",sheets:["Raw Product Catalog"]},
+      {label:"Cleaned catalog",path:"assets/downloads/PROJ-001_Cleaned_Data.xlsx",role:"Processed data",description:"Cleaned catalog, mappings, and cleaning log.",sheets:["Category Mapping","Size Mapping","Cleaned Catalog","Cleaning Log"]},
+      {label:"Marketplace readiness dashboard",path:"assets/downloads/PROJ-001_Dashboard.xlsx",role:"Dashboard",description:"Dashboard and its reference data.",sheets:["Dashboard","Data Source (Reference)"]}
+    ]
+  },
+  "proj-002": {
+    id: "PROJ-002", name: "Customer Data Cleanup", category: "CRM operations",
+    summary: "An auditable customer-data workflow for standardization, validation, CRM review, and written follow-up.",
+    problem: "Customer records included inconsistent controlled values, incomplete contact fields, malformed dates and numbers, and duplicated Customer IDs.",
+    data: "60 simulated customer records across six countries, preserved in a separate Raw Data sheet.",
+    work: ["Built mappings for Segment, Status, and Country", "Validated email, phone, dates, orders, and lifetime value", "Detected duplicate Customer IDs without deleting rows", "Created a detailed CRM review queue and SOP"],
+    workflow: ["Preserve source", "Standardize controlled values", "Validate row-level fields", "Count and classify issues", "Route exceptions", "Reconcile QA and dashboard"],
+    tools: ["Microsoft Excel", "Mapping tables", "Validation formulas", "Conditional formatting", "Dropdown controls", "Charts"],
+    result: "The workflow processed all 60 records, identified 47 ready rows and 13 distinct rows requiring review, and kept every source row traceable.",
+    skills: ["CRM data administration", "Data standardization", "Contact validation", "Exception tracking", "Written follow-up", "SOP documentation"],
+    gallery: ["EV-01_Raw_Data_Identity_and_Core_Fields.png","EV-02_Raw_Data_Country_Date_Segment_Status.png","EV-03_Raw_Data_Order_Count_and_Lifetime_Value.png","EV-04_Cleaned_Data_Standardized_Output.png","EV-05_Mappings_Standardization_Reference.png","EV-06_QA_Checks_Quality_Control.png","EV-07_Dashboard_KPIs_and_Issue_Breakdown.png","EV-08_CRM_Review_Queue.png","EV-09_Data_Entry_SOP.png","EV-10_Project_Notes.png","EV-11_Detailed_Review_Queue.png"],
+    primaryEvidence: ["EV-01_Raw_Data_Identity_and_Core_Fields.png","EV-04_Cleaned_Data_Standardized_Output.png","EV-06_QA_Checks_Quality_Control.png","EV-07_Dashboard_KPIs_and_Issue_Breakdown.png"],
+    files: [
+      {label:"Raw customer data",path:"assets/downloads/PROJ-002_Raw_Data.xlsx",role:"Source data",description:"Preserved source dataset before standardization.",sheets:["Raw Data"]},
+      {label:"Customer data operations workbook",path:"assets/downloads/PROJ-002_Customer_Data_Operations_FINAL.xlsx",role:"Final workbook",description:"Official workbook containing cleaning, QA, dashboard, review queue, and SOP.",sheets:["Raw Data","Mappings","Cleaned Data","QA Summary","Dashboard","CRM Review Queue","Data Entry SOP","Project Notes","Detailed Review Queue"]}
+    ]
+  },
+  "proj-003": {
+    id: "PROJ-003", name: "Order Reconciliation", category: "Order operations",
+    summary: "A reconciliation workflow that matches order and warehouse data while separating normal statuses from true discrepancies.",
+    problem: "Orders and warehouse dispatch records were stored separately, creating traceability gaps, quantity mismatches, duplicates, and phantom dispatch records.",
+    data: "41 simulated order rows and 25 warehouse dispatch rows. Raw order and warehouse sheets remain intact.",
+    work: ["Normalized status values", "Matched orders to dispatch records", "Compared ordered and dispatched quantities", "Separated normal non-shipped states from action cases", "Built an exception queue and dashboard"],
+    workflow: ["Preserve both sources", "Normalize status", "Detect duplicate IDs", "Match records", "Compare quantities", "Classify discrepancies", "Reconcile QA totals"],
+    tools: ["Microsoft Excel", "Lookup formulas", "COUNTIF", "IF logic", "Conditional formatting", "QA summary"],
+    result: "Every order row received a specific outcome. The workbook verified 19 orders end-to-end and isolated 10 true order-level discrepancies for review.",
+    skills: ["Order administration", "Data reconciliation", "Traceability checks", "Exception management", "Formula QA", "Operations reporting"],
+    gallery: ["EV-01_Raw_Order_Data.png","EV-02_Raw_Warehouse_Dispatch_Log.png","EV-03_Phantom_Order_Formula.png","EV-04A_Order_Match_Formula.png","EV-04B_Warehouse_Note_Formula.png","EV-05_Reconciliation_Preview.png","EV-06_Quantity_Mismatches.png","EV-07A_Shipped_No_Dispatch_Row_28.png","EV-07B_Shipped_No_Dispatch_Row_36.png","EV-08_Missing_Order_Quantities.png","EV-09_QA_Summary.png","EV-10_Dashboard_Overview.png","EV-11A_Dashboard_Count_Formulas.png","EV-11B_Dashboard_Verified_Rate_Formula.png","EV-11C_Dashboard_Review_Rate_Formula.png","EV-12_Dashboard_Source_Data.png","EV-13_Exception_Queue.png"],
+    primaryEvidence: ["EV-01_Raw_Order_Data.png","EV-02_Raw_Warehouse_Dispatch_Log.png","EV-05_Reconciliation_Preview.png","EV-10_Dashboard_Overview.png"],
+    files: [
+      {label:"Order export",path:"assets/downloads/PROJ-003_Order_Export_Raw.xlsx",role:"Source data",description:"Original order export used in reconciliation.",sheets:["Order Export"]},
+      {label:"Warehouse dispatch log",path:"assets/downloads/PROJ-003_Warehouse_Dispatch_Raw.xlsx",role:"Source data",description:"Original warehouse dispatch source.",sheets:["Warehouse Dispatch Log"]},
+      {label:"Reconciliation workbook",path:"assets/downloads/PROJ-003_Cleaned_Data_FINAL.xlsx",role:"Processed and QA",description:"Matched records, QA summary, and exception queue.",sheets:["Order Data","Warehouse Data","Reconciliation","QA Summary","Exception Queue"]},
+      {label:"Reconciliation dashboard",path:"assets/downloads/PROJ-003_Dashboard.xlsx",role:"Dashboard",description:"Dashboard and formula-linked source data.",sheets:["Dashboard","Dashboard Data"]}
+    ]
+  },
+  "proj-004": {
+    id: "PROJ-004", name: "Invoice Validation and VA Workflow", category: "Virtual assistance",
+    summary: "A written-first invoice control system combining validation, inbox logging, follow-up tracking, templates, and finance handoff.",
+    problem: "Invoice intake did not consistently catch duplicate IDs, vendor-name differences, missing purchase orders, invalid amounts, missing files, or overdue unpaid records.",
+    data: "48 simulated invoices processed through an 11-sheet workbook. The project does not authorize or execute payments.",
+    work: ["Standardized vendor names", "Validated invoice fields and documents", "Calculated risk and next written action", "Created email templates and an inbox log", "Built a follow-up tracker, checklist, and written handoff"],
+    workflow: ["Log invoice intake", "Map vendors", "Validate fields", "Prioritize exceptions", "Request information in writing", "Track responses", "Hand off to finance"],
+    tools: ["Microsoft Excel", "Lookup tables", "IF", "COUNTIF", "Conditional formatting", "Written templates"],
+    result: "All 48 invoices were preserved and classified. Eleven were Ready or Complete, while 37 required review through a documented written workflow.",
+    skills: ["Virtual assistance", "Invoice administration", "Inbox logging", "Written communication", "Follow-up tracking", "File organization"],
+    gallery: ["EV-01_Raw_Invoice_Data.png","EV-02_Vendor_Mapping.png","EV-03_Invoice_Validation.png","EV-04_QA_Summary.png","EV-05_Dashboard.png","EV-06_Email_Templates.png","EV-07_Inbox_Processing_Log.png","EV-08_Follow_Up_Tracker.png","EV-09_File_Organization_Plan.png","EV-10_Daily_VA_Checklist.png","EV-11_Written_Finance_Handoff.png"],
+    primaryEvidence: ["EV-01_Raw_Invoice_Data.png","EV-03_Invoice_Validation.png","EV-05_Dashboard.png","EV-08_Follow_Up_Tracker.png"],
+    files: [
+      {label:"Raw invoice source",path:"assets/downloads/PROJ-004_Raw_Invoices.xlsx",role:"Source data",description:"Preserved source invoices before validation.",sheets:["Raw Invoices"]},
+      {label:"VA operations workbook",path:"assets/downloads/PROJ-004_VA_Operations_FINAL.xlsx",role:"Final workbook",description:"Invoice validation, QA, dashboard, trackers, templates, and finance handoff.",sheets:["Raw Invoices","Vendor Mapping","Invoice Validation","QA Summary","Dashboard","Email Templates","Inbox Processing Log","Follow-Up Tracker","File Organization Plan","Daily VA Checklist","Finance Handoff"]}
+    ]
+  },
+  "proj-005": {
+    id: "PROJ-005", name: "Inventory Audit", category: "Inventory control",
+    summary: "A stock-reconciliation workflow that compares system and physical quantities and routes exceptions into written follow-up.",
+    problem: "Physical counts included duplicate identifiers, missing counts, invalid master data, incomplete evidence, and differences from system stock.",
+    data: "60 simulated inventory-count rows with controlled category and location references.",
+    work: ["Linked reconciliation rows to the raw source", "Validated identifiers, quantities, mappings, cost, and evidence", "Calculated quantity and value variance", "Created action and detailed case queues"],
+    workflow: ["Preserve raw count", "Validate master data", "Compare quantities", "Calculate variance", "Prioritize exceptions", "Reconcile QA and dashboard"],
+    tools: ["Microsoft Excel", "Validation formulas", "Mappings", "Conditional formatting", "Native charts"],
+    result: "The workflow classified 20 rows as Ready and 40 as requiring review. All totals were reconciled without detected formula errors.",
+    skills: ["Inventory data entry", "Stock reconciliation", "Variance analysis", "Evidence tracking", "Exception queues", "Written coordination"],
+    gallery: ["EV-01_Raw_Inventory_Count.png","EV-02_Controlled_References.png","EV-03_Formula_Driven_Reconciliation.png","EV-04_QA_Summary.png","EV-05_Inventory_Audit_Dashboard.png","EV-06_Action_Queue.png","EV-07_Inventory_Data_Entry_SOP.png","EV-08_Written_Communication_Templates.png","EV-09_Project_Notes.png","EV-10_Detailed_Case_Queue.png"],
+    primaryEvidence: ["EV-01_Raw_Inventory_Count.png","EV-03_Formula_Driven_Reconciliation.png","EV-05_Inventory_Audit_Dashboard.png","EV-06_Action_Queue.png"],
+    files: [{label:"Inventory audit workbook",path:"assets/downloads/PROJ-005_Inventory_Audit_FINAL.xlsx",role:"Complete workbook",description:"Source records, reconciliation, QA, dashboard, action queue, SOP, and notes.",sheets:["Raw Inventory","Reference","Reconciliation","QA Summary","Dashboard","Action Queue","Inventory SOP","Written Templates","Project Notes","Detailed Case Queue"]}]
+  },
+  "proj-006": {
+    id: "PROJ-006", name: "Employee Records Control", category: "HR administration",
+    summary: "A written-first employee-record workflow covering validation, document control, onboarding tracking, and follow-up.",
+    problem: "The simulated employee master contained duplicate IDs, an invalid email, an unapproved department, an invalid contract date, and incomplete onboarding documents.",
+    data: "40 simulated employee records. No real employee or company data is used.",
+    work: ["Separated raw data, references, validation, QA, and dashboard", "Checked record readiness and onboarding documents", "Built onboarding and follow-up trackers", "Documented an HR admin SOP"],
+    workflow: ["Preserve employee master", "Validate controlled fields", "Check document completeness", "Prioritize review", "Track onboarding", "Follow up in writing"],
+    tools: ["Microsoft Excel", "Reference tables", "Validation formulas", "Conditional formatting", "Dropdown controls"],
+    result: "The workbook reviewed all 40 records, classified 19 as ready and 21 for review, and documented 19 missing onboarding documents across 18 employees.",
+    skills: ["HR data entry", "Employee records", "Document control", "Onboarding administration", "Privacy awareness", "Written follow-up"],
+    gallery: ["EV-01_Raw_Employee_Records.png","EV-02_Controlled_HR_References.png","EV-03_Employee_Validation.png","EV-04_QA_Summary.png","EV-05_HR_Administration_Dashboard.png","EV-06_Onboarding_Tracker.png","EV-07_Document_Follow_Up.png","EV-08_HR_Admin_SOP.png","EV-09_Project_Notes.png"],
+    primaryEvidence: ["EV-01_Raw_Employee_Records.png","EV-03_Employee_Validation.png","EV-05_HR_Administration_Dashboard.png","EV-06_Onboarding_Tracker.png"],
+    files: [{label:"HR employee records workbook",path:"assets/downloads/PROJ-006_HR_Employee_Records_FINAL.xlsx",role:"Complete workbook",description:"Raw employees, validation, QA, dashboard, onboarding, follow-up, SOP, and notes.",sheets:["Raw Employees","References","Employee Validation","QA Summary","Dashboard","Onboarding Tracker","Document Follow-Up","HR Admin SOP","Project Notes"]}]
+  },
+  "proj-007": {
+    id: "PROJ-007", name: "Shipping Control", category: "Logistics administration",
+    summary: "A shipment-monitoring workflow for SLA checks, proof-of-delivery control, exception handling, and written escalation.",
+    problem: "The simulated shipment register contained duplicate tracking IDs, an invalid carrier, SLA exceptions, missing POD, delays, and stale tracking updates.",
+    data: "50 simulated shipment records checked against carrier and service-level references.",
+    work: ["Validated tracking IDs and carriers", "Compared promised dates with SLA references", "Checked delay, POD, and update status", "Built exception and written-communication queues"],
+    workflow: ["Preserve shipment register", "Validate carrier reference", "Test SLA", "Check supporting evidence", "Prioritize exceptions", "Prepare written escalation"],
+    tools: ["Microsoft Excel", "Reference tables", "Validation formulas", "Conditional formatting", "Written templates"],
+    result: "The workbook classified 19 shipments as ready and 31 for review, including three high-priority rows, with no detected formula errors.",
+    skills: ["Logistics data entry", "Shipment monitoring", "SLA validation", "POD control", "Exception management", "Written escalation"],
+    gallery: ["EV-01_Raw_Shipment_Register.png","EV-02_Carrier_SLA_Reference.png","EV-03_Shipment_Validation.png","EV-04_QA_Summary.png","EV-05_Logistics_Shipping_Dashboard.png","EV-06_Exception_Action_Queue.png","EV-07_Written_Communication_Templates.png","EV-08_Logistics_Admin_SOP.png","EV-09_Project_Notes.png"],
+    primaryEvidence: ["EV-01_Raw_Shipment_Register.png","EV-03_Shipment_Validation.png","EV-05_Logistics_Shipping_Dashboard.png","EV-06_Exception_Action_Queue.png"],
+    files: [{label:"Logistics shipping workbook",path:"assets/downloads/PROJ-007_Logistics_Shipping_FINAL.xlsx",role:"Complete workbook",description:"Raw shipments, SLA reference, validation, QA, dashboard, queue, communication, SOP, and notes.",sheets:["Raw Shipments","SLA Reference","Shipment Validation","QA Summary","Dashboard","Exception Queue","Written Communication","Logistics SOP","Project Notes"]}]
+  },
+  "proj-008": {
+    id: "PROJ-008", name: "Transaction Reconciliation", category: "Finance administration",
+    summary: "A two-way transaction and bank reconciliation workflow with validation, exception priority, written templates, and SOP controls.",
+    problem: "The simulated records included duplicate transaction IDs, invalid categories or currency, missing or negative amounts, missing documents, matching differences, and unmatched bank items.",
+    data: "60 simulated ledger transactions plus a separate simulated bank statement.",
+    work: ["Kept ledger and bank data separate", "Standardized transaction categories", "Validated each ledger row", "Reconciled in both directions", "Created an exception queue, templates, and SOP"],
+    workflow: ["Preserve sources", "Standardize categories", "Validate transactions", "Match ledger to bank", "Check bank-only items", "Prioritize exceptions"],
+    tools: ["Microsoft Excel", "Mapping tables", "Lookup formulas", "Conditional formatting", "QA controls"],
+    result: "The workbook classified 36 transactions as Ready and 24 for Review. The exception queue contained 26 cases, including two bank-only items.",
+    skills: ["Finance data entry", "Bank reconciliation", "Two-way matching", "Document control", "Exception tracking", "Remote admin documentation"],
+    gallery: ["EV-01_Raw_Transactions.png","EV-02_Bank_Statement.png","EV-03_References.png","EV-04_Transaction_Validation.png","EV-05_Bank_Reconciliation.png","EV-06_QA_Summary.png","EV-07_Dashboard.png","EV-08_Exception_Queue.png","EV-09_Written_Templates.png","EV-10_Finance_Admin_SOP.png","EV-11_Project_Notes.png"],
+    primaryEvidence: ["EV-01_Raw_Transactions.png","EV-04_Transaction_Validation.png","EV-05_Bank_Reconciliation.png","EV-07_Dashboard.png"],
+    files: [{label:"Finance data workbook",path:"assets/downloads/PROJ-008_Finance_Data_FINAL.xlsx",role:"Complete workbook",description:"Transactions, bank statement, validation, reconciliation, QA, dashboard, queue, templates, SOP, and notes.",sheets:["Raw Transactions","Bank Statement","References","Transaction Validation","Bank Reconciliation","QA Summary","Dashboard","Exception Queue","Written Templates","Finance Admin SOP","Project Notes"]}]
+  },
+  "proj-009": {
+    id: "PROJ-009", name: "Healthcare Records Control", category: "Records administration",
+    summary: "A privacy-aware appointment and patient-record workflow focused on completeness, schedule control, and written follow-up.",
+    problem: "The simulated dataset included duplicate appointment IDs, unmatched patient IDs, invalid status or communication values, incomplete consent or referrals, slot conflicts, and overdue follow-up.",
+    data: "50 simulated appointment records with a separate fictional patient registry and reference sheet.",
+    work: ["Validated appointment records against references", "Checked schedule conflicts separately", "Combined findings into a prioritized exception queue", "Documented privacy-aware SOP and written templates"],
+    workflow: ["Preserve appointment source", "Validate identifiers and controlled values", "Check consent and referral", "Review schedule conflicts", "Prioritize follow-up"],
+    tools: ["Microsoft Excel", "Reference tables", "Validation formulas", "Schedule controls", "Written templates"],
+    result: "The workbook found 34 records that passed data validation and routed 24 unique records into the combined exception queue after data and schedule checks.",
+    skills: ["Healthcare administration", "Appointment data entry", "Schedule control", "Privacy awareness", "Exception handling", "Written follow-up"],
+    gallery: ["EV-01_Appointments_Raw.png","EV-02_Patient_Registry.png","EV-03_References.png","EV-04_Record_Validation.png","EV-05_Schedule_Control.png","EV-06_QA_Summary.png","EV-07_Dashboard.png","EV-08_Exception_Queue.png","EV-09_Written_Templates.png","EV-10_Healthcare_Admin_SOP.png","EV-11_Project_Notes.png"],
+    primaryEvidence: ["EV-01_Appointments_Raw.png","EV-04_Record_Validation.png","EV-05_Schedule_Control.png","EV-07_Dashboard.png"],
+    files: [{label:"Healthcare records workbook",path:"assets/downloads/PROJ-009_Healthcare_Records_FINAL.xlsx",role:"Complete workbook",description:"Fictional appointments, registry, validation, scheduling, QA, dashboard, queue, templates, SOP, and notes.",sheets:["Appointments Raw","Patient Registry","References","Record Validation","Schedule Control","QA Summary","Dashboard","Exception Queue","Written Templates","Healthcare Admin SOP","Project Notes"]}]
+  },
+  "proj-010": {
+    id: "PROJ-010", name: "Multi-Source Data Merge", category: "Master data administration",
+    summary: "A controlled merge of customer records from CRM, web orders, and support sources into one reviewable master dataset.",
+    problem: "The same Customer ID could contain different email or phone values across three systems, so blindly selecting one value would create an unreliable master record.",
+    data: "90 simulated source rows across CRM, web orders, and support, representing 40 Customer IDs.",
+    work: ["Preserved all three raw sources", "Standardized source fields", "Applied source-priority rules", "Compared cross-source values", "Routed unresolved conflicts into an exception queue"],
+    workflow: ["Preserve three sources", "Normalize fields", "Group by Customer ID", "Apply candidate rules", "Compare values", "Flag conflicts", "Build master data"],
+    tools: ["Microsoft Excel", "Lookup formulas", "Merge rules", "Duplicate detection", "QA summary"],
+    result: "The workflow reconciled all 90 source rows into 40 customer master records. Thirty were Ready and 10 required review because conflicts remained.",
+    skills: ["Multi-source data entry", "Master data administration", "Record matching", "Conflict management", "Formula audit", "SOP documentation"],
+    gallery: ["EV-01_CRM_Source.png","EV-02_Web_Orders_Source.png","EV-03_Support_Source.png","EV-04_Merge_Rules.png","EV-05_Normalized_Combined.png","EV-06_Master_Customer_Data.png","EV-07_QA_Summary.png","EV-08_Dashboard.png","EV-09_Exception_Queue.png","EV-10_Merge_Admin_SOP.png","EV-11_Project_Notes.png"],
+    primaryEvidence: ["EV-01_CRM_Source.png","EV-05_Normalized_Combined.png","EV-06_Master_Customer_Data.png","EV-08_Dashboard.png"],
+    files: [{label:"Multi-source merge workbook",path:"assets/downloads/PROJ-010_Multi_Source_Merge_FINAL.xlsx",role:"Complete workbook",description:"Three sources, merge rules, normalized data, customer master, QA, dashboard, queue, SOP, and notes.",sheets:["CRM Source","Web Orders Source","Support Source","Merge Rules","Normalized Combined","Master Customer Data","QA Summary","Dashboard","Exception Queue","Merge Admin SOP","Project Notes"]}]
+  }
+};
+
+window.projectCaseStudies = projectCaseStudies;
