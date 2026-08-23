@@ -1,5 +1,12 @@
-document.querySelector(".portrait-card img")?.setAttribute("src", "assets/putri-hero-professional-v2.png");
-document.querySelector(".about-photo > img")?.setAttribute("src", "assets/putri-workspace-v2.png");
+document.querySelector(".portrait-card img")?.setAttribute("src", "assets/putri-hero-authentic.jpeg");
+document.querySelector(".about-photo > img")?.setAttribute("src", "assets/putri-about-authentic.jpeg");
+document.querySelector(".profile-chip img")?.setAttribute("src", "assets/putri-profile-square.png");
+const navigationHireLink = [...document.querySelectorAll("nav .nav-cta")].find(link => link.textContent.trim() === "Hire me");
+if (navigationHireLink) {
+  navigationHireLink.href = "mailto:putrienjel67@gmail.com";
+  navigationHireLink.removeAttribute("target");
+  navigationHireLink.removeAttribute("rel");
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const projects = window.projectCaseStudies || {};
