@@ -1,3 +1,6 @@
+document.querySelector(".portrait-card img")?.setAttribute("src", "assets/putri-hero-professional-v2.png");
+document.querySelector(".about-photo > img")?.setAttribute("src", "assets/putri-workspace-v2.png");
+
 document.addEventListener("DOMContentLoaded", () => {
   const projects = window.projectCaseStudies || {};
   const projectKeys = Object.keys(projects);
