@@ -11,7 +11,9 @@ import yaml
 
 from audit import build_change_log
 from dashboard import build_dashboard_payload, write_dashboard
+from history import append_run_history
 from intake import load_batch
+from master_match import match_to_master
 from quality import QualitySummary, score_records
 from reconciliation import find_possible_duplicates
 
@@ -81,11 +83,19 @@ def validate_records(df: pd.DataFrame, config: dict) -> tuple[pd.DataFrame, QARe
     return deduplicated, result
 
 
+def _latest_master(output_dir: Path) -> pd.DataFrame:
+    files = sorted(output_dir.glob("master_data_*.csv"), reverse=True)
+    if not files:
+        return pd.DataFrame()
+    return pd.read_csv(files[0])
+
+
 def write_outputs(
     df: pd.DataFrame,
     result: QAResult,
     quality: QualitySummary,
     reconciliation: pd.DataFrame,
+    master_matches: pd.DataFrame,
     audit_log: pd.DataFrame,
     rejected_sources: list[str],
     config: dict,
@@ -95,6 +105,7 @@ def write_outputs(
     review_dir = ROOT / config.get("review_dir", "data/review")
     audit_dir = ROOT / config.get("audit_dir", "data/audit")
     dashboard_dir = ROOT / config.get("dashboard_dir", "dashboard/data")
+    history_file = report_dir / "run_history.json"
     for directory in (output_dir, report_dir, review_dir, audit_dir, dashboard_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
@@ -102,6 +113,7 @@ def write_outputs(
     df.to_csv(output_dir / f"master_data_{run_id}.csv", index=False)
     df.loc[df["review_required"]].to_csv(review_dir / f"review_queue_{run_id}.csv", index=False)
     reconciliation.to_csv(review_dir / f"possible_matches_{run_id}.csv", index=False)
+    master_matches.to_csv(review_dir / f"master_match_decisions_{run_id}.csv", index=False)
     audit_log.to_csv(audit_dir / f"change_log_{run_id}.csv", index=False)
 
     report = {
@@ -112,12 +124,15 @@ def write_outputs(
         "average_quality_score": quality.average_score,
         "quality": asdict(quality),
         "possible_entity_matches": len(reconciliation),
+        "master_safe_matches": int((master_matches.get("decision") == "safe_match").sum()) if not master_matches.empty else 0,
+        "master_review_matches": int((master_matches.get("decision") == "review_match").sum()) if not master_matches.empty else 0,
         "automated_field_changes": len(audit_log),
         "rejected_sources": rejected_sources,
     }
-    with (report_dir / f"operations_report_{run_id}.json").open("w", encoding="utf-8") as file:
-        json.dump(report, file, indent=2)
+    report_path = report_dir / f"operations_report_{run_id}.json"
+    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
+    append_run_history(report, history_file)
     dashboard = build_dashboard_payload(df, report)
     write_dashboard(dashboard, dashboard_dir / "latest.json")
 
@@ -126,6 +141,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
     config = load_config()
     intake_dir = ROOT / config.get("input_dir", "data/incoming")
+    output_dir = ROOT / config["output_dir"]
 
     logging.info("Reading intake batch: %s", intake_dir)
     raw, rejected_sources = load_batch(intake_dir)
@@ -137,10 +153,13 @@ def main() -> None:
     scored, quality = score_records(validated, config["required_fields"], config["allowed_statuses"])
     possible_matches = find_possible_duplicates(scored, float(config.get("match_threshold", 0.88)))
 
+    previous_master = _latest_master(output_dir)
+    master_matches = match_to_master(scored, previous_master, float(config.get("master_match_threshold", 0.9)))
+
     raw_for_audit = raw.copy()
     raw_for_audit.columns = [column.strip().lower() for column in raw_for_audit.columns]
     audit_log = build_change_log(raw_for_audit, scored)
-    write_outputs(scored, result, quality, possible_matches, audit_log, rejected_sources, config)
+    write_outputs(scored, result, quality, possible_matches, master_matches, audit_log, rejected_sources, config)
 
     logging.info(
         "Finished: %s received | %s written | %s review | quality %.2f/100",
