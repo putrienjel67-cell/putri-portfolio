@@ -1,6 +1,9 @@
 input_file: data/incoming/operations_intake.csv
 output_dir: data/processed
 report_dir: reports
+review_dir: data/review
+audit_dir: data/audit
+match_threshold: 0.88
 
 required_fields:
   - record_id
