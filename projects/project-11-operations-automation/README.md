@@ -1,59 +1,108 @@
-# Operations Control Desk — Data Intake, QA & Reconciliation
+# Operations Control Desk — Multi-Source Data Operations Automation
 
-Most data-entry problems do not begin with typing. They begin when several people, files, and systems describe the same business information differently.
+Most data-entry problems do not begin with typing. They begin when several people, exports, spreadsheets, and systems describe the same business information differently.
 
-This project is a local Python operations system built around that messier reality. It takes an incoming operational dataset, standardizes it, checks data quality, separates uncertain records for review, looks for possible duplicate entities, records automated changes, and produces a clean master dataset plus an operations report.
+This project is a Python-based operations system built around that messier reality. It accepts multiple CSV and Excel sources, tags each record with its origin, validates and standardizes the data, scores quality, separates uncertain records for review, checks for possible duplicate entities, compares records with prior master data, records automated changes, and produces clean operational outputs plus dashboard-ready metrics.
 
-> Portfolio project using fictional sample data. It is designed to demonstrate workflow thinking and technical implementation without presenting simulated work as client work.
+> Portfolio project using fictional sample data. No client or production data is included.
 
-## Why I built it
+## The business problem
 
-My earlier portfolio work covers individual operations tasks such as spreadsheet cleanup, research, list building, database updates, file organization, reporting, and administrative support. Here I wanted to connect those ideas into one controlled workflow rather than another isolated spreadsheet exercise.
+A real operations queue can receive a CRM export, a vendor spreadsheet, a form download, and a manually maintained tracker in the same week. Each source can be individually reasonable while still creating conflicts when the records are combined.
 
-The main design question was: **what should a machine safely decide, and what should it hand back to a person?**
+The hard part is not copying one row into another file. It is deciding which differences are harmless formatting issues, which records are duplicates, which values can be standardized safely, and which cases need a person to look at them.
 
-Exact duplicate IDs can be handled automatically. A suspiciously similar company name cannot always be. Missing information should not disappear. A cleaned value should still be traceable to what arrived originally.
+That is the problem this project models.
 
-Those decisions shaped the system.
+## Design principle
 
-## Processing flow
+**Automate repeatable checks. Keep uncertain business decisions visible.**
+
+The system can safely trim whitespace, normalize email casing, standardize known status labels, parse dates, reject unusable schemas, remove exact duplicate IDs, and calculate operational QA metrics. It can also suggest likely entity matches.
+
+It does not silently merge fuzzy matches or discard incomplete records just because they are inconvenient.
+
+## End-to-end flow
 
 ```text
-Incoming CSV
-    |
-    v
-Schema check + normalization
-    |
-    v
+CSV / Excel sources
+        |
+        v
+Batch intake + source tagging
+        |
+        v
+Schema checks + normalization
+        |
+        v
 Exact duplicate handling
-    |
-    v
+        |
+        v
 Record-level quality scoring
-    |---------------------> Review queue
-    |
-    v
-Possible entity reconciliation
-    |---------------------> Human match review
-    |
-    v
-Clean master dataset
-    |
-    +----> Field-level audit log
-    +----> JSON operations report
+        |
+        +--------------------> Human review queue
+        |
+        v
+Cross-record reconciliation
+        |
+        +--------------------> Possible-match review
+        |
+        v
+Previous-master comparison
+        |
+        +----> exact email = safe match
+        +----> close fuzzy match = review match
+        +----> no match = new record
+        |
+        v
+Master data output
+        |
+        +----> field-level audit log
+        +----> JSON operations report
+        +----> dashboard payload
+        +----> run history
 ```
+
+A more detailed architecture note is available in `docs/architecture.md`.
 
 ## What happens during a run
 
-- Required columns are checked before processing continues.
-- Text, email casing, status labels, and dates are normalized.
-- Exact duplicate request IDs are removed deterministically.
-- Every remaining record receives a quality score from 0–100.
-- Missing required values, malformed email addresses, unsupported statuses, and invalid dates reduce that score.
-- Records below 100 are routed to a separate review queue.
-- A fuzzy reconciliation pass looks for different IDs that may refer to the same entity.
-- Possible matches are never merged automatically; they are exported with a match score for human review.
-- Field-level changes are written to an audit file with before/after values.
-- The run finishes with a machine-readable JSON summary for reporting or a future dashboard.
+The intake layer scans the incoming folder for supported CSV and Excel files. A broken or unsupported source is recorded as a rejection instead of stopping the entire batch. Valid files are combined and each record keeps a `source_file` field so its origin remains traceable.
+
+The processing layer then normalizes common text fields, email casing, status labels, and dates. Required fields are validated and exact duplicate request IDs are handled deterministically.
+
+Every remaining record receives a quality score from 0–100. Missing required values, malformed email addresses, unsupported statuses, and invalid dates reduce the score. A score below 100 routes the record into the human-review queue rather than deleting it.
+
+The reconciliation layer looks for records that may refer to the same entity even when names differ slightly. Separately, the master-match layer compares the current batch with the previous master output. Exact email matches can be marked safe, while fuzzy matches are exported as review decisions rather than merged automatically.
+
+Finally, the system writes a master dataset, review queues, reconciliation candidates, master-match decisions, a field-level audit log, an operations report, dashboard data, and rolling run history.
+
+## Interactive dashboard
+
+The Streamlit dashboard in `dashboard/app.py` turns generated outputs into a compact operations control center. It includes:
+
+- rows received and written
+- average quality score
+- current review workload
+- possible entity matches
+- safe master matches
+- rejected-source count
+- status distribution
+- quality distribution
+- latest master dataset
+- latest human-review queue
+- historical quality and review trends across runs
+
+Run it locally with:
+
+```bash
+streamlit run dashboard/app.py
+```
+
+## Scheduled automation
+
+Project 11 includes a separate GitHub Actions workflow for unattended weekday processing. The workflow can also be started manually. It installs the project, runs the operations pipeline, and uploads generated processed data, review queues, audit logs, and reports as a workflow artifact.
+
+The schedule demonstrates how the same local pipeline can become a recurring operational job without rewriting the core logic.
 
 ## Repository structure
 
@@ -61,47 +110,59 @@ Clean master dataset
 project-11-operations-automation/
 ├── config.yaml
 ├── requirements.txt
+├── run_daily.py
 ├── data/
 │   ├── incoming/
-│   │   └── operations_intake.csv
-│   ├── processed/       # generated master datasets
-│   ├── review/          # exception queues and possible matches
-│   └── audit/           # generated field-change logs
-├── reports/             # generated run summaries
+│   │   ├── operations_intake.csv
+│   │   ├── crm_export.csv
+│   │   └── vendor_requests.csv
+│   ├── processed/
+│   ├── review/
+│   └── audit/
+├── dashboard/
+│   ├── app.py
+│   └── data/
+├── docs/
+│   └── architecture.md
+├── reports/
 ├── src/
 │   ├── pipeline.py
+│   ├── intake.py
 │   ├── quality.py
 │   ├── reconciliation.py
-│   └── audit.py
+│   ├── master_match.py
+│   ├── audit.py
+│   ├── dashboard.py
+│   └── history.py
 └── tests/
-    └── test_quality.py
+    ├── test_quality.py
+    ├── test_intake.py
+    └── test_master_match.py
 ```
 
-## Configuration instead of hard-coded business rules
+## Why the sample sources overlap
 
-`config.yaml` controls required fields, accepted statuses, output locations, and the fuzzy-match threshold. I separated those rules from the Python modules because operational requirements change more often than the mechanics of reading and writing data.
+The fictional sources intentionally contain a mix of exact matches, near matches, inconsistent capitalization, unsupported statuses, missing values, and different request wording.
 
-## Quality scoring
+For example, `Blue Harbor Co` and `Blue Harbor Company` are deliberately close enough to test reconciliation behavior. The system should notice the similarity, but it should not pretend that similarity alone proves they are the same business record.
 
-A perfect record starts at 100. The score is reduced when required information is missing or when important fields fail validation. The score is not intended to pretend that data quality is mathematically objective. Its purpose is prioritization: clean records can continue, while questionable records become visible in the review queue.
+That distinction is one of the main reasons this project exists.
 
-## Reconciliation
+## Configuration instead of buried rules
 
-Exact duplicates and possible duplicates are deliberately treated differently.
-
-An identical `record_id` is deterministic enough to remove from the working dataset. Two records with similar company names or emails may represent the same entity, but automatically merging them risks destroying valid information. The reconciliation module therefore creates candidate pairs and leaves the final decision to a person.
-
-That human-in-the-loop boundary is intentional.
+Required fields, accepted statuses, source locations, output locations, and matching thresholds live in `config.yaml` rather than being scattered throughout the Python modules. Operational rules tend to change more often than file-processing mechanics, so separating them makes the system easier to inspect and maintain.
 
 ## Auditability
 
-Cleaning data without recording what changed makes troubleshooting difficult. The audit module compares the incoming record with the normalized record and records field-level before/after values. This creates a lightweight trace of what the automation changed rather than leaving only the final output.
+Cleaning data without recording what changed makes troubleshooting difficult. The audit module records field-level before/after values so the automation does not leave only the final answer behind.
+
+Run-level history is also retained, which makes it possible to see whether average data quality improves, exception volume rises, or review workload changes over time.
 
 ## Automated checks
 
-The repository includes pytest coverage for core quality-scoring behavior. A GitHub Actions workflow installs the project, runs the tests, and executes the sample pipeline whenever Project 11 changes in a push or pull request.
+The CI workflow runs pytest and then executes the sample pipeline whenever Project 11 changes. Tests cover quality scoring, multi-source intake, and the distinction between safe master matches and fuzzy matches that require review.
 
-That gives the project two layers of QA: the system checks business data, while CI checks the system itself.
+This gives the project two QA layers: the system checks business data, while CI checks the system itself.
 
 ## Run locally
 
@@ -111,23 +172,13 @@ python -m venv .venv
 pip install -r requirements.txt
 python src/pipeline.py
 pytest -q
+streamlit run dashboard/app.py
 ```
 
 On macOS/Linux use `source .venv/bin/activate`.
 
-## Outputs
+## What this demonstrates
 
-A successful run can produce four kinds of evidence:
+Project 11 combines data entry and data operations rather than treating them as separate worlds: multi-source ingestion, spreadsheet/CSV handling, schema validation, normalization, data-quality scoring, duplicate management, master-data reconciliation, exception routing, human review, audit trails, batch history, reporting, dashboarding, automated tests, CI, and scheduled automation.
 
-1. **Master dataset** — normalized records with QA fields and quality scores.
-2. **Review queue** — records that still require judgment or missing-data follow-up.
-3. **Reconciliation candidates** — possible cross-record matches with similarity scores.
-4. **Audit + operations report** — traceable changes and run-level metrics.
-
-## What this project demonstrates
-
-This is not intended as a claim that every data-entry task should be automated. It demonstrates how repetitive data operations can be made more controlled: Python/pandas processing, schema validation, data normalization, QA rules, record scoring, duplicate management, fuzzy reconciliation, exception routing, human review, audit trails, configuration management, automated testing, CI, and operational reporting.
-
-## Next build stage
-
-The current architecture is deliberately file-based so every input and output can be inspected. The next stage is to add multi-source Excel/CSV intake, batch manifests, reconciliation against a separate master-data source, a small operations dashboard, and scheduled processing. Those additions will sit on top of the same review and audit principles rather than replacing them.
+The goal is not to make automation look magical. The goal is to show where automation is useful, where evidence should be preserved, and where a human decision still matters.
