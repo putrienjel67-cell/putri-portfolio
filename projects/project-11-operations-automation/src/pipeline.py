@@ -10,6 +10,8 @@ import pandas as pd
 import yaml
 
 from audit import build_change_log
+from dashboard import build_dashboard_payload, write_dashboard
+from intake import load_batch
 from quality import QualitySummary, score_records
 from reconciliation import find_possible_duplicates
 
@@ -85,13 +87,15 @@ def write_outputs(
     quality: QualitySummary,
     reconciliation: pd.DataFrame,
     audit_log: pd.DataFrame,
+    rejected_sources: list[str],
     config: dict,
 ) -> None:
     output_dir = ROOT / config["output_dir"]
     report_dir = ROOT / config["report_dir"]
     review_dir = ROOT / config.get("review_dir", "data/review")
     audit_dir = ROOT / config.get("audit_dir", "data/audit")
-    for directory in (output_dir, report_dir, review_dir, audit_dir):
+    dashboard_dir = ROOT / config.get("dashboard_dir", "dashboard/data")
+    for directory in (output_dir, report_dir, review_dir, audit_dir, dashboard_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -104,21 +108,30 @@ def write_outputs(
         "run_id": run_id,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         **asdict(result),
+        "records_requiring_review": quality.review_records,
+        "average_quality_score": quality.average_score,
         "quality": asdict(quality),
         "possible_entity_matches": len(reconciliation),
         "automated_field_changes": len(audit_log),
+        "rejected_sources": rejected_sources,
     }
     with (report_dir / f"operations_report_{run_id}.json").open("w", encoding="utf-8") as file:
         json.dump(report, file, indent=2)
+
+    dashboard = build_dashboard_payload(df, report)
+    write_dashboard(dashboard, dashboard_dir / "latest.json")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
     config = load_config()
-    source = ROOT / config["input_file"]
+    intake_dir = ROOT / config.get("input_dir", "data/incoming")
 
-    logging.info("Reading operational intake: %s", source)
-    raw = pd.read_csv(source)
+    logging.info("Reading intake batch: %s", intake_dir)
+    raw, rejected_sources = load_batch(intake_dir)
+    for rejection in rejected_sources:
+        logging.warning("Rejected source: %s", rejection)
+
     normalized = normalize_records(raw, config)
     validated, result = validate_records(normalized, config)
     scored, quality = score_records(validated, config["required_fields"], config["allowed_statuses"])
@@ -127,7 +140,7 @@ def main() -> None:
     raw_for_audit = raw.copy()
     raw_for_audit.columns = [column.strip().lower() for column in raw_for_audit.columns]
     audit_log = build_change_log(raw_for_audit, scored)
-    write_outputs(scored, result, quality, possible_matches, audit_log, config)
+    write_outputs(scored, result, quality, possible_matches, audit_log, rejected_sources, config)
 
     logging.info(
         "Finished: %s received | %s written | %s review | quality %.2f/100",
