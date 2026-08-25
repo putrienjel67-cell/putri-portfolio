@@ -12,13 +12,14 @@ REPORTS = ROOT / "reports"
 PROCESSED = ROOT / "data" / "processed"
 REVIEW = ROOT / "data" / "review"
 
-st.set_page_config(page_title="Operations Control Center", layout="wide")
+st.set_page_config(page_title="Operations Control Center", page_icon="📊", layout="wide")
 st.title("Operations Control Center")
-st.caption("A compact view of intake health, exceptions, and data quality. Fictional portfolio data only.")
+st.caption("Latest intake health, exception load, and data-quality signals. Fictional portfolio data only.")
 
 report_files = sorted(REPORTS.glob("operations_report_*.json"), reverse=True)
 master_files = sorted(PROCESSED.glob("master_data_*.csv"), reverse=True)
 review_files = sorted(REVIEW.glob("review_queue_*.csv"), reverse=True)
+history_file = REPORTS / "run_history.json"
 
 if not report_files or not master_files:
     st.info("Run the pipeline first. The dashboard reads the most recent generated outputs.")
@@ -33,11 +34,18 @@ col2.metric("Rows written", report["rows_written"])
 col3.metric("Average quality", f"{report['quality']['average_score']:.1f}/100")
 col4.metric("Needs review", report["quality"]["review_records"])
 
-st.subheader("Status distribution")
-st.bar_chart(data["status"].fillna("missing").value_counts())
+col5, col6, col7 = st.columns(3)
+col5.metric("Possible entity matches", report.get("possible_entity_matches", 0))
+col6.metric("Safe master matches", report.get("master_safe_matches", 0))
+col7.metric("Rejected sources", len(report.get("rejected_sources", [])))
 
-st.subheader("Quality distribution")
-st.bar_chart(data["quality_score"].value_counts().sort_index())
+left, right = st.columns(2)
+with left:
+    st.subheader("Status distribution")
+    st.bar_chart(data["status"].fillna("missing").value_counts())
+with right:
+    st.subheader("Quality distribution")
+    st.bar_chart(data["quality_score"].value_counts().sort_index())
 
 st.subheader("Latest master data")
 st.dataframe(data, use_container_width=True, hide_index=True)
@@ -52,5 +60,17 @@ if review_files:
 else:
     st.write("No review queue has been generated yet.")
 
-st.subheader("Run details")
-st.json(report)
+st.subheader("Run history")
+if history_file.exists():
+    history = pd.DataFrame(json.loads(history_file.read_text(encoding="utf-8")))
+    if not history.empty:
+        history["generated_at"] = pd.to_datetime(history["generated_at"], errors="coerce")
+        history = history.sort_values("generated_at")
+        trend = history.set_index("generated_at")[["average_quality_score", "review_records"]]
+        st.line_chart(trend)
+        st.dataframe(history.sort_values("generated_at", ascending=False), use_container_width=True, hide_index=True)
+else:
+    st.write("Run history will appear after the pipeline has completed more than once.")
+
+with st.expander("Latest run details"):
+    st.json(report)
