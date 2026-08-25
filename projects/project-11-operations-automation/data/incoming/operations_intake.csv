@@ -1,0 +1,7 @@
+record_id,client_name,email,request_type,status,received_at
+REQ-1001,Northwind Studio,HELLO@NORTHWIND.EXAMPLE,contact update,New,2026-08-20 09:15
+REQ-1002,Maple Works,ops@maple.example,spreadsheet cleanup,in progress,2026-08-20 10:40
+REQ-1003,Harbor Desk,admin@harbor.example,research list,Waiting,2026-08-21 08:05
+REQ-1003,Harbor Desk,admin@harbor.example,research list,Waiting,2026-08-21 08:05
+REQ-1004,Pine Office,,database update,Completed,2026-08-21 13:30
+REQ-1005,Elm Services,team@elm.example,file organization,Needs Check,2026-08-22 11:20

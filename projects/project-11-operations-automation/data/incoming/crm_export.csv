@@ -1,0 +1,5 @@
+record_id,client_name,email,request_type,status,received_at
+CRM-2001,Northwind Studio,hello@northwind.example,contact update,Completed,2026-08-23 09:12
+CRM-2002,Maple Works,OPS@MAPLE.EXAMPLE,spreadsheet cleanup,In Progress,2026-08-23 10:20
+CRM-2003,Blue Harbor Co,admin@blueharbor.example,crm enrichment,New,2026-08-23 11:05
+CRM-2004,Pine Office,team@pine.example,database update,Waiting,2026-08-23 13:44

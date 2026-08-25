@@ -1,0 +1,25 @@
+input_file: data/incoming/operations_intake.csv
+output_dir: data/processed
+report_dir: reports
+review_dir: data/review
+audit_dir: data/audit
+match_threshold: 0.88
+
+required_fields:
+  - record_id
+  - client_name
+  - email
+  - request_type
+  - status
+  - received_at
+
+allowed_statuses:
+  - new
+  - in_progress
+  - waiting
+  - completed
+
+text_fields:
+  - client_name
+  - request_type
+  - status
