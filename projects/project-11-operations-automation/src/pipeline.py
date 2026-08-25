@@ -9,6 +9,10 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
+from audit import build_change_log
+from quality import QualitySummary, score_records
+from reconciliation import find_possible_duplicates
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,7 +63,6 @@ def validate_records(df: pd.DataFrame, config: dict) -> tuple[pd.DataFrame, QARe
 
     rows_received = len(df)
     missing_required_values = int(df[required].isna().sum().sum())
-
     duplicate_mask = df.duplicated(subset=["record_id"], keep="first")
     duplicate_count = int(duplicate_mask.sum())
     deduplicated = df.loc[~duplicate_mask].copy()
@@ -72,32 +75,40 @@ def validate_records(df: pd.DataFrame, config: dict) -> tuple[pd.DataFrame, QARe
     deduplicated.loc[incomplete, "qa_flag"] = deduplicated.loc[incomplete, "qa_flag"].fillna("missing_required_data")
     deduplicated["qa_flag"] = deduplicated["qa_flag"].fillna("ok")
 
-    result = QAResult(
-        rows_received=rows_received,
-        rows_written=len(deduplicated),
-        duplicate_rows_removed=duplicate_count,
-        missing_required_values=missing_required_values,
-        invalid_status_rows=invalid_status_count,
-    )
+    result = QAResult(rows_received, len(deduplicated), duplicate_count, missing_required_values, invalid_status_count)
     return deduplicated, result
 
 
-def write_outputs(df: pd.DataFrame, result: QAResult, config: dict) -> None:
+def write_outputs(
+    df: pd.DataFrame,
+    result: QAResult,
+    quality: QualitySummary,
+    reconciliation: pd.DataFrame,
+    audit_log: pd.DataFrame,
+    config: dict,
+) -> None:
     output_dir = ROOT / config["output_dir"]
     report_dir = ROOT / config["report_dir"]
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report_dir.mkdir(parents=True, exist_ok=True)
+    review_dir = ROOT / config.get("review_dir", "data/review")
+    audit_dir = ROOT / config.get("audit_dir", "data/audit")
+    for directory in (output_dir, report_dir, review_dir, audit_dir):
+        directory.mkdir(parents=True, exist_ok=True)
 
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    df.to_csv(output_dir / f"clean_operations_{run_id}.csv", index=False)
+    df.to_csv(output_dir / f"master_data_{run_id}.csv", index=False)
+    df.loc[df["review_required"]].to_csv(review_dir / f"review_queue_{run_id}.csv", index=False)
+    reconciliation.to_csv(review_dir / f"possible_matches_{run_id}.csv", index=False)
+    audit_log.to_csv(audit_dir / f"change_log_{run_id}.csv", index=False)
 
     report = {
         "run_id": run_id,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         **asdict(result),
-        "records_requiring_review": int((df["qa_flag"] != "ok").sum()),
+        "quality": asdict(quality),
+        "possible_entity_matches": len(reconciliation),
+        "automated_field_changes": len(audit_log),
     }
-    with (report_dir / f"qa_report_{run_id}.json").open("w", encoding="utf-8") as file:
+    with (report_dir / f"operations_report_{run_id}.json").open("w", encoding="utf-8") as file:
         json.dump(report, file, indent=2)
 
 
@@ -106,17 +117,24 @@ def main() -> None:
     config = load_config()
     source = ROOT / config["input_file"]
 
-    logging.info("Reading intake file: %s", source)
+    logging.info("Reading operational intake: %s", source)
     raw = pd.read_csv(source)
-    cleaned = normalize_records(raw, config)
-    validated, result = validate_records(cleaned, config)
-    write_outputs(validated, result, config)
+    normalized = normalize_records(raw, config)
+    validated, result = validate_records(normalized, config)
+    scored, quality = score_records(validated, config["required_fields"], config["allowed_statuses"])
+    possible_matches = find_possible_duplicates(scored, float(config.get("match_threshold", 0.88)))
+
+    raw_for_audit = raw.copy()
+    raw_for_audit.columns = [column.strip().lower() for column in raw_for_audit.columns]
+    audit_log = build_change_log(raw_for_audit, scored)
+    write_outputs(scored, result, quality, possible_matches, audit_log, config)
 
     logging.info(
-        "Finished: %s rows received, %s written, %s duplicates removed.",
+        "Finished: %s received | %s written | %s review | quality %.2f/100",
         result.rows_received,
         result.rows_written,
-        result.duplicate_rows_removed,
+        quality.review_records,
+        quality.average_score,
     )
 
 
