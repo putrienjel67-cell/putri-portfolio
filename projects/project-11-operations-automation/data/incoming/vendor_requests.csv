@@ -1,0 +1,5 @@
+record_id,client_name,email,request_type,status,received_at
+VEN-3001,Blue Harbor Company,admin@blueharbor.example,CRM Enrichment,new,2026-08-24 08:30
+VEN-3002,Elm Services,team@elm.example,file organization,Needs Check,2026-08-24 09:10
+VEN-3003,Cedar Group,hello@cedar.example,catalog update,New,2026-08-24 10:40
+VEN-3004,Maple Works,ops@maple.example,spreadsheet clean up,Waiting,2026-08-24 11:25
