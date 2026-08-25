@@ -1,75 +1,133 @@
-# Operations Intake & QA Automation
+# Operations Control Desk — Data Intake, QA & Reconciliation
 
-A small Python workflow for a very ordinary operations problem: incoming records are rarely as tidy as the spreadsheet template says they should be.
+Most data-entry problems do not begin with typing. They begin when several people, files, and systems describe the same business information differently.
 
-I built this project to automate the repetitive first pass I would normally do by hand: clean the intake file, standardize common fields, catch duplicate IDs, flag incomplete records, and leave a simple QA report for review.
+This project is a local Python operations system built around that messier reality. It takes an incoming operational dataset, standardizes it, checks data quality, separates uncertain records for review, looks for possible duplicate entities, records automated changes, and produces a clean master dataset plus an operations report.
 
-> Portfolio project using fictional sample data. No client or production data is included.
+> Portfolio project using fictional sample data. It is designed to demonstrate workflow thinking and technical implementation without presenting simulated work as client work.
 
-## The problem
+## Why I built it
 
-An operations inbox or shared spreadsheet can collect requests from different people throughout the day. Names have extra spaces, email casing is inconsistent, statuses are typed differently, records get submitted twice, and required information is sometimes missing.
+My earlier portfolio work covers individual operations tasks such as spreadsheet cleanup, research, list building, database updates, file organization, reporting, and administrative support. Here I wanted to connect those ideas into one controlled workflow rather than another isolated spreadsheet exercise.
 
-None of those problems is difficult on its own. The problem is having to check the same things every time a new batch arrives.
+The main design question was: **what should a machine safely decide, and what should it hand back to a person?**
 
-## What the workflow does
+Exact duplicate IDs can be handled automatically. A suspiciously similar company name cannot always be. Missing information should not disappear. A cleaned value should still be traceable to what arrived originally.
 
-1. Reads a CSV intake file.
-2. Normalizes column names and text values.
-3. Standardizes email addresses and status values.
-4. Parses received dates instead of trusting the source format.
-5. Checks that required columns exist.
-6. Counts missing required values.
-7. Removes duplicate `record_id` entries while keeping the first record.
-8. Flags statuses outside the approved list.
-9. Flags rows that still need a human review.
-10. Exports a timestamped clean CSV and JSON QA report.
+Those decisions shaped the system.
 
-The intention is not to automate judgment. It automates the boring checks and makes exceptions visible so a person can deal with them quickly.
+## Processing flow
 
-## Project structure
+```text
+Incoming CSV
+    |
+    v
+Schema check + normalization
+    |
+    v
+Exact duplicate handling
+    |
+    v
+Record-level quality scoring
+    |---------------------> Review queue
+    |
+    v
+Possible entity reconciliation
+    |---------------------> Human match review
+    |
+    v
+Clean master dataset
+    |
+    +----> Field-level audit log
+    +----> JSON operations report
+```
+
+## What happens during a run
+
+- Required columns are checked before processing continues.
+- Text, email casing, status labels, and dates are normalized.
+- Exact duplicate request IDs are removed deterministically.
+- Every remaining record receives a quality score from 0–100.
+- Missing required values, malformed email addresses, unsupported statuses, and invalid dates reduce that score.
+- Records below 100 are routed to a separate review queue.
+- A fuzzy reconciliation pass looks for different IDs that may refer to the same entity.
+- Possible matches are never merged automatically; they are exported with a match score for human review.
+- Field-level changes are written to an audit file with before/after values.
+- The run finishes with a machine-readable JSON summary for reporting or a future dashboard.
+
+## Repository structure
 
 ```text
 project-11-operations-automation/
 ├── config.yaml
 ├── requirements.txt
 ├── data/
-│   └── incoming/
-│       └── operations_intake.csv
-├── reports/                 # generated QA reports
-└── src/
-    └── pipeline.py
+│   ├── incoming/
+│   │   └── operations_intake.csv
+│   ├── processed/       # generated master datasets
+│   ├── review/          # exception queues and possible matches
+│   └── audit/           # generated field-change logs
+├── reports/             # generated run summaries
+├── src/
+│   ├── pipeline.py
+│   ├── quality.py
+│   ├── reconciliation.py
+│   └── audit.py
+└── tests/
+    └── test_quality.py
 ```
 
-## Run it
+## Configuration instead of hard-coded business rules
+
+`config.yaml` controls required fields, accepted statuses, output locations, and the fuzzy-match threshold. I separated those rules from the Python modules because operational requirements change more often than the mechanics of reading and writing data.
+
+## Quality scoring
+
+A perfect record starts at 100. The score is reduced when required information is missing or when important fields fail validation. The score is not intended to pretend that data quality is mathematically objective. Its purpose is prioritization: clean records can continue, while questionable records become visible in the review queue.
+
+## Reconciliation
+
+Exact duplicates and possible duplicates are deliberately treated differently.
+
+An identical `record_id` is deterministic enough to remove from the working dataset. Two records with similar company names or emails may represent the same entity, but automatically merging them risks destroying valid information. The reconciliation module therefore creates candidate pairs and leaves the final decision to a person.
+
+That human-in-the-loop boundary is intentional.
+
+## Auditability
+
+Cleaning data without recording what changed makes troubleshooting difficult. The audit module compares the incoming record with the normalized record and records field-level before/after values. This creates a lightweight trace of what the automation changed rather than leaving only the final output.
+
+## Automated checks
+
+The repository includes pytest coverage for core quality-scoring behavior. A GitHub Actions workflow installs the project, runs the tests, and executes the sample pipeline whenever Project 11 changes in a push or pull request.
+
+That gives the project two layers of QA: the system checks business data, while CI checks the system itself.
+
+## Run locally
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python src/pipeline.py
+pytest -q
 ```
 
-On macOS/Linux, activate the environment with `source .venv/bin/activate` instead.
+On macOS/Linux use `source .venv/bin/activate`.
 
-## Why the rules live in config
+## Outputs
 
-I kept required fields and allowed statuses in `config.yaml` rather than burying them inside the Python file. In an actual admin workflow those rules change more often than the processing logic. Keeping them separate makes the workflow easier to maintain without rewriting the pipeline.
+A successful run can produce four kinds of evidence:
 
-## QA approach
+1. **Master dataset** — normalized records with QA fields and quality scores.
+2. **Review queue** — records that still require judgment or missing-data follow-up.
+3. **Reconciliation candidates** — possible cross-record matches with similarity scores.
+4. **Audit + operations report** — traceable changes and run-level metrics.
 
-A record is not silently discarded just because something looks wrong. Duplicate IDs are removed because they are objectively duplicate submissions. Other exceptions are retained and marked with `qa_flag`, so the output still provides an audit trail for manual review.
+## What this project demonstrates
 
-That distinction matters in operations work: automation should reduce repetitive checking without hiding uncertain data.
+This is not intended as a claim that every data-entry task should be automated. It demonstrates how repetitive data operations can be made more controlled: Python/pandas processing, schema validation, data normalization, QA rules, record scoring, duplicate management, fuzzy reconciliation, exception routing, human review, audit trails, configuration management, automated testing, CI, and operational reporting.
 
-## Example issues intentionally included
+## Next build stage
 
-The fictional sample contains a duplicate request, a missing email address, mixed status formatting, uppercase email text, and one status that is outside the allowed list. They are deliberate test cases, not accidental dirty data.
-
-## Skills demonstrated
-
-Python, pandas, CSV processing, configurable validation rules, data cleaning, duplicate detection, exception handling, QA reporting, logging, file-based automation, and operational documentation.
-
-## Possible next iteration
-
-The current version is deliberately local and easy to inspect. A useful next step would be a watched intake folder or scheduled job, plus an exception queue that only sends records requiring review to a human.
+The current architecture is deliberately file-based so every input and output can be inspected. The next stage is to add multi-source Excel/CSV intake, batch manifests, reconciliation against a separate master-data source, a small operations dashboard, and scheduled processing. Those additions will sit on top of the same review and audit principles rather than replacing them.
