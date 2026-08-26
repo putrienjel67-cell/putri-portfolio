@@ -1,238 +1,344 @@
-document.querySelector(".portrait-card img")?.setAttribute("src", "assets/putri-hero-authentic.jpeg");
-document.querySelector(".about-photo > img")?.setAttribute("src", "assets/putri-about-authentic.jpeg");
-document.querySelector(".profile-chip img")?.setAttribute("src", "assets/putri-profile-square.png");
-const navigationHireLink = [...document.querySelectorAll("nav .nav-cta")].find(link => link.textContent.trim() === "Hire me");
-if (navigationHireLink) {
-  navigationHireLink.href = "mailto:putrienjel67@gmail.com";
-  navigationHireLink.removeAttribute("target");
-  navigationHireLink.removeAttribute("rel");
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const projects = window.projectCaseStudies || {};
   const projectKeys = Object.keys(projects);
-  const cards = [...document.querySelectorAll(".project")];
-  let activeKey = "";
-  let activeCard = null;
+  const selectedKeys = ["proj-003", "proj-010", "proj-002"];
+  const announcer = document.querySelector("[data-announcer]");
+  const menuButton = document.querySelector(".menu-button");
+  const siteNav = document.querySelector(".site-nav");
+  let activeProjectKey = "";
+  let projectTrigger = null;
+  let lightboxItems = [];
+  let lightboxIndex = 0;
+  let lightboxTrigger = null;
 
-  const stats = [
-    [String(projectKeys.length), "complete case studies"],
-    [String(projectKeys.reduce((total, key) => total + projects[key].gallery.length, 0)), "evidence screenshots"],
-    [String(projectKeys.reduce((total, key) => total + projects[key].files.length, 0)), "verified project workbooks"],
-    ["Formula-driven QA", "checks, review queues, and SOPs"]
-  ];
+  const escapeHtml = value => String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-  document.querySelectorAll(".proof-item").forEach((item, index) => {
-    if (!stats[index]) return;
-    item.querySelector("strong").textContent = stats[index][0];
-    item.querySelector("span").textContent = stats[index][1];
-  });
-
-  const workSection = document.getElementById("work");
-  if (workSection) {
-    workSection.querySelector(".kicker").textContent = "Evidence-based projects";
-    workSection.querySelector("h2").textContent = "Open the work. Follow the process.";
-    workSection.querySelector(".split-head p").textContent = "Each project opens into a complete case study with the problem, workflow, evidence gallery, and downloadable workbook.";
-    workSection.querySelector(".filters").setAttribute("aria-label", "Filter projects");
-  }
-  const supportingHighlight = document.querySelector(".float-card.three");
-  if (supportingHighlight) supportingHighlight.textContent = "Written-first admin support";
-
-  const dialog = document.createElement("dialog");
-  dialog.className = "case-dialog";
-  dialog.setAttribute("aria-labelledby", "case-title");
-  dialog.innerHTML = `
-    <div class="case-shell">
-      <nav class="case-nav" aria-label="Case study navigation">
-        <button class="case-close" type="button">Back to projects</button>
-        <span class="case-position" aria-live="polite"></span>
-        <div class="case-nav-actions">
-          <button class="case-prev" type="button">Previous</button>
-          <button class="case-next" type="button">Next</button>
-        </div>
-      </nav>
-      <div class="case-content"></div>
-    </div>`;
-  document.body.append(dialog);
-
-  const viewer = document.createElement("div");
-  viewer.className = "gallery-viewer";
-  viewer.setAttribute("role", "dialog");
-  viewer.setAttribute("aria-modal", "true");
-  viewer.setAttribute("aria-label", "Screenshot preview");
-  viewer.innerHTML = '<button class="viewer-close" type="button">Close image</button><img alt="">';
-  document.body.append(viewer);
-
-  const list = (items, className = "case-list") => `<ul class="${className}">${items.map(item => `<li>${item}</li>`).join("")}</ul>`;
-  const tags = items => `<div class="case-tags">${items.map(item => `<span>${item}</span>`).join("")}</div>`;
   const evidenceCaption = filename => filename
     .replace(/\.png$/i, "")
     .replace(/^EV-\d+[A-C]?_?/i, "")
     .replaceAll("_", " ");
 
-  function renderCaseStudy(key, updateHistory = true) {
+  const previewPath = key => `assets/p${key.slice(-2)}.png`;
+  const projectHash = key => `#case-${key}`;
+
+  function announce(message) {
+    if (announcer) announcer.textContent = message;
+  }
+
+  function renderSelectedWork() {
+    const target = document.querySelector("[data-selected-projects]");
+    if (!target) return;
+    target.innerHTML = selectedKeys.map(key => {
+      const item = projects[key];
+      if (!item) return "";
+      return `
+        <article class="selected-project">
+          <a class="selected-media" href="${projectHash(key)}" data-project-link="${key}" aria-label="View case study: ${escapeHtml(item.name)}">
+            <img src="${previewPath(key)}" width="1600" height="900" loading="eager" alt="${escapeHtml(item.name)} project evidence preview">
+          </a>
+          <div class="selected-copy">
+            <div class="project-meta"><span>${escapeHtml(item.id)}</span><span>${escapeHtml(item.category)}</span></div>
+            <h3>${escapeHtml(item.name)}</h3>
+            <p>${escapeHtml(item.summary)}</p>
+            <a class="text-link" href="${projectHash(key)}" data-project-link="${key}">View Case Study<span aria-hidden="true"> →</span></a>
+          </div>
+        </article>`;
+    }).join("");
+  }
+
+  function renderProjectIndex() {
+    const target = document.querySelector("[data-project-index]");
+    if (!target) return;
+    target.innerHTML = projectKeys.map(key => {
+      const item = projects[key];
+      return `
+        <a class="project-row" href="${projectHash(key)}" data-project-link="${key}">
+          <span class="project-number">${escapeHtml(item.id.replace("PROJ-", ""))}</span>
+          <span class="project-thumb"><img src="${previewPath(key)}" width="320" height="240" loading="lazy" alt=""></span>
+          <span>
+            <span class="project-title">${escapeHtml(item.name)}</span>
+            <span class="project-category">${escapeHtml(item.category)}</span>
+            <span class="project-purpose">${escapeHtml(item.summary)}</span>
+          </span>
+        </a>`;
+    }).join("");
+  }
+
+  const caseDialog = document.createElement("dialog");
+  caseDialog.className = "case-dialog";
+  caseDialog.setAttribute("aria-labelledby", "case-title");
+  caseDialog.innerHTML = `
+    <div class="case-shell">
+      <nav class="case-topbar" aria-label="Case study navigation">
+        <button type="button" class="case-close">Back to Projects</button>
+        <span class="case-progress" aria-live="polite"></span>
+        <div class="case-top-actions">
+          <button type="button" class="case-previous">Previous</button>
+          <button type="button" class="case-next">Next</button>
+        </div>
+      </nav>
+      <div class="case-render"></div>
+    </div>`;
+  document.body.append(caseDialog);
+
+  const lightbox = document.createElement("dialog");
+  lightbox.className = "lightbox";
+  lightbox.setAttribute("aria-labelledby", "lightbox-caption");
+  lightbox.innerHTML = `
+    <div class="lightbox-layout">
+      <div class="lightbox-bar">
+        <button type="button" class="lightbox-previous">Previous image</button>
+        <span class="lightbox-count" aria-live="polite"></span>
+        <button type="button" class="lightbox-close">Close image</button>
+        <button type="button" class="lightbox-next">Next image</button>
+      </div>
+      <div class="lightbox-media"><img alt=""></div>
+      <p class="lightbox-caption" id="lightbox-caption"></p>
+    </div>`;
+  document.body.append(lightbox);
+
+  function listMarkup(items, className = "case-list") {
+    return `<ul class="${className}">${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+
+  function tagsMarkup(items) {
+    return `<div class="tag-list">${items.map(item => `<span>${escapeHtml(item)}</span>`).join("")}</div>`;
+  }
+
+  function groupEvidence(item) {
+    const groups = { "Input / Before": [], "Process / Checks": [], "Output / Result": [] };
+    const outputPattern = /Dashboard|Queue|Summary|SOP|Template|Notes|Handoff|Checklist|Plan|Tracker|Master_Customer|Cleaned_Data_After/i;
+    const inputPattern = /Raw|Source|Statement|Registry|Reference/i;
+    item.gallery.forEach(filename => {
+      if (inputPattern.test(filename)) groups["Input / Before"].push(filename);
+      else if (outputPattern.test(filename)) groups["Output / Result"].push(filename);
+      else groups["Process / Checks"].push(filename);
+    });
+    return Object.entries(groups).filter(([, files]) => files.length);
+  }
+
+  function evidenceMarkup(key, item) {
+    let number = 0;
+    return groupEvidence(item).map(([label, files]) => `
+      <section class="evidence-group" aria-labelledby="${key}-${label.replaceAll(/[^a-z]+/gi, "-").toLowerCase()}">
+        <div class="evidence-group-title">
+          <h4 id="${key}-${label.replaceAll(/[^a-z]+/gi, "-").toLowerCase()}">${escapeHtml(label)}</h4>
+          <span>${files.length} screenshot${files.length === 1 ? "" : "s"}</span>
+        </div>
+        <div class="evidence-grid">
+          ${files.map(filename => {
+            const currentNumber = ++number;
+            const src = `assets/projects/${key}/${filename}`;
+            const caption = evidenceCaption(filename);
+            return `
+              <figure class="evidence-figure">
+                <button class="evidence-button" type="button" data-image="${src}" data-caption="${escapeHtml(item.id)} evidence: ${escapeHtml(caption)}" aria-label="Open screenshot: ${escapeHtml(caption)}">
+                  <img src="${src}" width="1600" height="1000" loading="lazy" alt="${escapeHtml(item.id)} evidence: ${escapeHtml(caption)}">
+                </button>
+                <figcaption><span>${String(currentNumber).padStart(2, "0")}</span>${escapeHtml(caption)}</figcaption>
+              </figure>`;
+          }).join("")}
+        </div>
+      </section>`).join("");
+  }
+
+  function downloadsMarkup(item) {
+    return item.files.map(file => `
+      <article class="download-item">
+        <div>
+          <p class="case-label">${escapeHtml(file.role)}</p>
+          <h4>${escapeHtml(file.label)}</h4>
+          <p>${escapeHtml(file.description)}</p>
+        </div>
+        <a class="button button-secondary" href="${escapeHtml(file.path)}" download>Download Workbook</a>
+      </article>`).join("");
+  }
+
+  function renderCaseStudy(key, options = {}) {
     const item = projects[key];
     if (!item) return;
-    activeKey = key;
-    const projectIndex = projectKeys.indexOf(key);
-    const evidenceFigure = (filename, index, eager = false) => {
-      const src = `assets/projects/${key}/${filename}`;
-      return `<figure class="${index === 0 ? "evidence-featured" : ""}">
-        <button class="evidence-open" type="button" data-full="${src}" aria-label="Open screenshot: ${evidenceCaption(filename)}">
-          <img ${eager ? `src="${src}" loading="eager" fetchpriority="${index === 0 ? "high" : "auto"}"` : `data-src="${src}"`} alt="${item.id} evidence: ${evidenceCaption(filename)}">
-        </button>
-        <figcaption><span>${String(index + 1).padStart(2, "0")}</span>${evidenceCaption(filename)}</figcaption>
-      </figure>`;
-    };
-    const primaryGallery = item.primaryEvidence.map((filename, index) => evidenceFigure(filename, index, true)).join("");
-    const remainingEvidence = item.gallery.filter(filename => !item.primaryEvidence.includes(filename));
-    const completeGallery = remainingEvidence.map((filename, index) => evidenceFigure(filename, item.primaryEvidence.length + index)).join("");
-
-    const projectFiles = item.files.map(file => `<article class="file-item">
-      <div><p class="case-meta">${file.role}</p><h4>${file.label}</h4><p>${file.description}</p><p class="file-sheets"><strong>Sheets:</strong> ${file.sheets.join(", ")}</p></div>
-      <a class="btn secondary" href="${file.path}" download>Download .xlsx</a>
-    </article>`).join("");
-    const githubAction = item.github
-      ? `<a class="btn secondary" href="${item.github}" target="_blank" rel="noopener">View GitHub repository</a>`
-      : "";
-
-    dialog.querySelector(".case-position").textContent = `${item.id} of ${projectKeys.length}`;
-    dialog.querySelector(".case-prev").disabled = projectIndex === 0;
-    dialog.querySelector(".case-next").disabled = projectIndex === projectKeys.length - 1;
-    dialog.querySelector(".case-content").innerHTML = `
+    activeProjectKey = key;
+    const index = projectKeys.indexOf(key);
+    const renderTarget = caseDialog.querySelector(".case-render");
+    renderTarget.innerHTML = `
       <header class="case-hero">
-        <div class="case-hero-copy">
-          <p class="case-meta">${item.id} | ${item.category}</p>
-          <h2 id="case-title">${item.name}</h2>
-          <p class="case-summary">${item.summary}</p>
-        </div>
-        <dl class="case-facts">
-          <div><dt>Evidence</dt><dd>${item.gallery.length} screenshots</dd></div>
-          <div><dt>Project files</dt><dd>${item.files.length} verified workbook${item.files.length === 1 ? "" : "s"}</dd></div>
-          <div><dt>Repository</dt><dd>${item.github ? "Public repository available" : "No public repository"}</dd></div>
-        </dl>
-        <p class="case-integrity">Independent portfolio simulation using fictional data. Results describe the workbook dataset, not paid client impact.</p>
-      </header>
-      <div class="case-body">
-        <div class="case-intro">
-          <section class="case-block"><h3>Problem and objective</h3><p>${item.problem}</p></section>
-          <section class="case-block"><h3>Data and work scope</h3><p>${item.data}</p></section>
-        </div>
-        <section class="case-section case-work"><h3>What I worked on</h3>${list(item.work)}</section>
-        <section class="case-section case-process"><h3>Workflow</h3>${list(item.workflow, "case-list workflow-list")}</section>
-        <section class="case-section case-tooling"><h3>Tools used</h3>${tags(item.tools)}</section>
-        <section class="case-section case-outcome"><h3>Result</h3><div class="case-result">${item.result}</div></section>
-        <section class="case-section case-skills"><h3>Skills shown</h3>${tags(item.skills)}</section>
-        <section class="evidence-section" aria-labelledby="evidence-title">
-          <div class="gallery-head">
-            <div><p class="case-meta">Evidence gallery</p><h3 id="evidence-title">The work, not just the claim.</h3></div>
-            <p>${item.gallery.length} screenshots from source data, formulas, validation controls, dashboards, queues, and documentation.</p>
+        <div class="case-hero-grid">
+          <div>
+            <p class="case-kicker">${escapeHtml(item.id)} | ${escapeHtml(item.category)}</p>
+            <h2 id="case-title">${escapeHtml(item.name)}</h2>
+            <p class="case-summary">${escapeHtml(item.summary)}</p>
           </div>
-          <div class="case-gallery primary-gallery">${primaryGallery}</div>
-          ${remainingEvidence.length ? `<details class="complete-evidence"><summary>View all evidence (${item.gallery.length})</summary><div class="case-gallery">${completeGallery}</div></details>` : ""}
+          <dl class="case-facts">
+            <div><dt>Evidence</dt><dd>${item.gallery.length} screenshots</dd></div>
+            <div><dt>Downloads</dt><dd>${item.files.length} workbook${item.files.length === 1 ? "" : "s"}</dd></div>
+            <div><dt>Tools</dt><dd>${escapeHtml(item.tools.slice(0, 3).join(", "))}</dd></div>
+          </dl>
+        </div>
+        <p class="case-disclosure">Independent practice simulation using fictional data. Results describe the workbook dataset and workflow output, not paid client impact.</p>
+      </header>
+      <main class="case-main">
+        <div class="case-overview">
+          <section class="case-block"><p class="case-label">Problem</p><h3>What needed attention</h3><p>${escapeHtml(item.problem)}</p></section>
+          <section class="case-block"><p class="case-label">Input</p><h3>Data and working scope</h3><p>${escapeHtml(item.data)}</p></section>
+        </div>
+        <section class="case-row"><h3>My Work</h3>${listMarkup(item.work)}</section>
+        <section class="case-row"><h3>Process</h3>${listMarkup(item.workflow, "case-list workflow-list")}</section>
+        <section class="case-row"><h3>Checks / QA</h3>${listMarkup(item.qa)}</section>
+        <section class="case-row"><h3>Exceptions</h3>${listMarkup(item.exceptions)}</section>
+        <section class="case-row"><h3>Result</h3><p class="case-result">${escapeHtml(item.result)}</p></section>
+        <section class="case-row"><h3>Skills Shown</h3>${tagsMarkup(item.skills)}</section>
+        <section class="case-row"><h3>Tools Used</h3>${tagsMarkup(item.tools)}</section>
+        <section class="evidence-section" aria-labelledby="evidence-title">
+          <div class="evidence-heading">
+            <p class="case-label">Evidence</p>
+            <h3 id="evidence-title">See the work from input to output.</h3>
+            <p>Open any screenshot for a full-size view. Evidence is grouped by its role in the workflow.</p>
+          </div>
+          ${evidenceMarkup(key, item)}
         </section>
-        <section class="case-deliverables" aria-labelledby="deliverables-title">
-          <div><p class="case-meta">Recruiter access</p><h3 id="deliverables-title">Project files</h3><p>These are the original source, processed, dashboard, or complete workbooks found in this project folder. No project-specific public GitHub repository was found.</p></div>
-          <div class="project-files">${projectFiles}</div>
-          <div class="case-actions">${githubAction}<button class="btn secondary case-back" type="button">Back to projects</button></div>
+        <section class="downloads-section" aria-labelledby="downloads-title">
+          <div class="downloads-heading">
+            <p class="case-label">Downloads</p>
+            <h3 id="downloads-title">Project workbooks</h3>
+            <p>Files found in the repository and verified against this project. Screenshots remain the primary evidence.</p>
+          </div>
+          <div class="download-list">${downloadsMarkup(item)}</div>
         </section>
-        <nav class="case-footer-nav" aria-label="Browse case studies">
-          <button class="case-prev" type="button" ${projectIndex === 0 ? "disabled" : ""}>Previous case study</button>
-          <span>${String(projectIndex + 1).padStart(2, "0")} / ${String(projectKeys.length).padStart(2, "0")}</span>
-          <button class="case-next" type="button" ${projectIndex === projectKeys.length - 1 ? "disabled" : ""}>Next case study</button>
+        <nav class="case-bottom-nav" aria-label="Browse case studies">
+          <button type="button" class="case-previous" ${index === 0 ? "disabled" : ""}>Previous Case Study</button>
+          <span>${String(index + 1).padStart(2, "0")} / ${String(projectKeys.length).padStart(2, "0")}</span>
+          <button type="button" class="case-next" ${index === projectKeys.length - 1 ? "disabled" : ""}>Next Case Study</button>
         </nav>
-      </div>`;
+      </main>`;
 
-    dialog.querySelectorAll(".evidence-open").forEach(button => button.addEventListener("click", () => openViewer(button)));
-    dialog.querySelector(".complete-evidence")?.addEventListener("toggle", event => {
-      if (!event.currentTarget.open) return;
-      event.currentTarget.querySelectorAll("img[data-src]").forEach(image => {
-        image.src = image.dataset.src;
-        image.removeAttribute("data-src");
-      });
-    }, { once: true });
-    dialog.querySelector(".case-back").addEventListener("click", closeCaseStudy);
-    dialog.querySelector(".case-content").querySelectorAll(".case-prev").forEach(button => button.addEventListener("click", () => openAdjacent(-1)));
-    dialog.querySelector(".case-content").querySelectorAll(".case-next").forEach(button => button.addEventListener("click", () => openAdjacent(1)));
-    if (!dialog.open) dialog.showModal();
-    dialog.scrollTop = 0;
-    document.body.classList.add("case-open");
-    if (updateHistory) history.pushState({ caseStudy: key }, "", `#case-${key}`);
+    caseDialog.querySelector(".case-progress").textContent = `${item.id} of ${projectKeys.length}`;
+    caseDialog.querySelectorAll(".case-previous").forEach(button => { button.disabled = index === 0; });
+    caseDialog.querySelectorAll(".case-next").forEach(button => { button.disabled = index === projectKeys.length - 1; });
+    renderTarget.querySelectorAll(".evidence-button").forEach(button => button.addEventListener("click", () => openLightbox(button)));
+    renderTarget.querySelectorAll(".evidence-button img").forEach(image => image.addEventListener("error", () => {
+      const button = image.closest(".evidence-button");
+      button.classList.add("image-error");
+      button.disabled = true;
+      button.textContent = "Screenshot could not be loaded";
+    }, { once: true }));
+    renderTarget.querySelectorAll(".case-previous").forEach(button => button.addEventListener("click", () => openAdjacent(-1)));
+    renderTarget.querySelectorAll(".case-next").forEach(button => button.addEventListener("click", () => openAdjacent(1)));
+
+    if (!caseDialog.open) caseDialog.showModal();
+    caseDialog.scrollTop = 0;
+    document.body.classList.add("modal-open");
+    if (!options.fromRoute) history.pushState({ project: key }, "", projectHash(key));
+    caseDialog.querySelector(".case-close").focus();
+    announce(`${item.name} case study opened`);
+  }
+
+  function closeCaseStudy(options = {}) {
+    if (lightbox.open) lightbox.close();
+    if (caseDialog.open) caseDialog.close();
+    document.body.classList.remove("modal-open");
+    activeProjectKey = "";
+    if (!options.fromRoute) history.pushState(null, "", "#projects");
+    const returnTarget = projectTrigger || document.querySelector("#projects");
+    projectTrigger = null;
+    if (returnTarget instanceof HTMLElement) returnTarget.focus({ preventScroll: true });
+    if (!options.fromRoute) document.querySelector("#projects")?.scrollIntoView({ block: "start" });
+    announce("Case study closed");
   }
 
   function openAdjacent(direction) {
-    const nextIndex = projectKeys.indexOf(activeKey) + direction;
-    const nextKey = projectKeys[nextIndex];
+    const nextKey = projectKeys[projectKeys.indexOf(activeProjectKey) + direction];
     if (nextKey) renderCaseStudy(nextKey);
   }
 
-  function closeCaseStudy(updateHistory = true) {
-    if (dialog.open) dialog.close();
-    document.body.classList.remove("case-open");
-    activeKey = "";
-    if (updateHistory) history.pushState(null, "", "#work");
-    activeCard?.focus({ preventScroll: true });
-    document.getElementById("work")?.scrollIntoView({ block: "start" });
+  function openLightbox(button) {
+    lightboxItems = [...caseDialog.querySelectorAll(".evidence-button:not(:disabled)")];
+    lightboxIndex = lightboxItems.indexOf(button);
+    lightboxTrigger = button;
+    updateLightbox();
+    lightbox.showModal();
+    lightbox.querySelector(".lightbox-close").focus();
+    announce("Screenshot preview opened");
   }
 
-  function openViewer(button) {
-    const fullImage = viewer.querySelector("img");
-    fullImage.src = button.dataset.full;
-    fullImage.alt = button.querySelector("img").alt;
-    viewer.classList.add("open");
-    viewer.querySelector(".viewer-close").focus();
-  }
-
-  function closeViewer() {
-    viewer.classList.remove("open");
-    viewer.querySelector("img").removeAttribute("src");
-  }
-
-  cards.forEach((card, index) => {
-    const key = projectKeys[index];
-    const item = projects[key];
+  function updateLightbox() {
+    const item = lightboxItems[lightboxIndex];
     if (!item) return;
-    card.tabIndex = 0;
-    card.setAttribute("role", "link");
-    card.setAttribute("aria-label", `Open case study: ${item.name}`);
-    card.dataset.project = key;
-    const proof = document.createElement("div");
-    proof.className = "project-proof";
-    proof.innerHTML = `<span>${item.gallery.length} verified screenshots</span><span>${item.files.length} workbook${item.files.length === 1 ? "" : "s"}</span>`;
-    const link = document.createElement("span");
-    link.className = "case-link";
-    link.textContent = "View case study →";
-    card.querySelector(".copy").append(proof, link);
-    const openCard = () => {
-      activeCard = card;
-      renderCaseStudy(key);
-    };
-    card.addEventListener("click", openCard);
-    card.addEventListener("keydown", event => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openCard();
-      }
-    });
-  });
+    const image = lightbox.querySelector("img");
+    const caption = item.dataset.caption;
+    image.src = item.dataset.image;
+    image.alt = caption;
+    lightbox.querySelector(".lightbox-caption").textContent = caption;
+    lightbox.querySelector(".lightbox-previous").disabled = lightboxIndex === 0;
+    lightbox.querySelector(".lightbox-next").disabled = lightboxIndex === lightboxItems.length - 1;
+    lightbox.querySelector(".lightbox-count").textContent = `${lightboxIndex + 1} / ${lightboxItems.length}`;
+  }
 
-  dialog.querySelector(".case-close").addEventListener("click", closeCaseStudy);
-  dialog.querySelector(".case-prev").addEventListener("click", () => openAdjacent(-1));
-  dialog.querySelector(".case-next").addEventListener("click", () => openAdjacent(1));
-  dialog.addEventListener("cancel", event => {
+  function moveLightbox(direction) {
+    const nextIndex = lightboxIndex + direction;
+    if (nextIndex >= 0 && nextIndex < lightboxItems.length) {
+      lightboxIndex = nextIndex;
+      updateLightbox();
+    }
+  }
+
+  function closeLightbox() {
+    if (lightbox.open) lightbox.close();
+    const image = lightbox.querySelector("img");
+    image.removeAttribute("src");
+    lightboxTrigger?.focus({ preventScroll: true });
+    lightboxTrigger = null;
+    announce("Screenshot preview closed");
+  }
+
+  function handleRoute() {
+    const key = location.hash.startsWith("#case-") ? location.hash.slice(6) : "";
+    if (projects[key]) renderCaseStudy(key, { fromRoute: true });
+    else if (caseDialog.open) closeCaseStudy({ fromRoute: true });
+  }
+
+  renderSelectedWork();
+  renderProjectIndex();
+
+  document.querySelectorAll("[data-project-link]").forEach(link => link.addEventListener("click", event => {
     event.preventDefault();
-    if (viewer.classList.contains("open")) closeViewer();
+    projectTrigger = link;
+    const key = link.dataset.projectLink;
+    renderCaseStudy(key);
+  }));
+
+  menuButton?.addEventListener("click", () => {
+    const open = menuButton.getAttribute("aria-expanded") === "true";
+    menuButton.setAttribute("aria-expanded", String(!open));
+    siteNav?.classList.toggle("open", !open);
+  });
+  siteNav?.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
+    menuButton?.setAttribute("aria-expanded", "false");
+    siteNav.classList.remove("open");
+  }));
+
+  caseDialog.querySelector(".case-close").addEventListener("click", () => closeCaseStudy());
+  caseDialog.querySelector(".case-previous").addEventListener("click", () => openAdjacent(-1));
+  caseDialog.querySelector(".case-next").addEventListener("click", () => openAdjacent(1));
+  caseDialog.addEventListener("cancel", event => {
+    event.preventDefault();
+    if (lightbox.open) closeLightbox();
     else closeCaseStudy();
   });
-  viewer.querySelector(".viewer-close").addEventListener("click", closeViewer);
-  viewer.addEventListener("click", event => { if (event.target === viewer) closeViewer(); });
-  document.addEventListener("keydown", event => { if (event.key === "Escape" && viewer.classList.contains("open")) closeViewer(); });
-  window.addEventListener("popstate", () => {
-    const key = location.hash.startsWith("#case-") ? location.hash.slice(6) : "";
-    if (projects[key]) renderCaseStudy(key, false);
-    else if (dialog.open) closeCaseStudy(false);
+  lightbox.querySelector(".lightbox-close").addEventListener("click", closeLightbox);
+  lightbox.querySelector(".lightbox-previous").addEventListener("click", () => moveLightbox(-1));
+  lightbox.querySelector(".lightbox-next").addEventListener("click", () => moveLightbox(1));
+  lightbox.addEventListener("cancel", event => { event.preventDefault(); closeLightbox(); });
+  document.addEventListener("keydown", event => {
+    if (!lightbox.open) return;
+    if (event.key === "ArrowLeft") moveLightbox(-1);
+    if (event.key === "ArrowRight") moveLightbox(1);
   });
-
-  const initialKey = location.hash.startsWith("#case-") ? location.hash.slice(6) : "";
-  if (projects[initialKey]) renderCaseStudy(initialKey, false);
+  window.addEventListener("popstate", handleRoute);
+  window.addEventListener("hashchange", handleRoute);
+  handleRoute();
 });
